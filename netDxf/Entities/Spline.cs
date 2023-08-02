@@ -26,6 +26,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime;
 using netDxf.Tables;
 
 namespace netDxf.Entities
@@ -42,8 +43,8 @@ namespace netDxf.Entities
         private readonly SplineCreationMethod creationMethod;
         private Vector3? startTangent;
         private Vector3? endTangent;
-        private readonly Vector3[] controlPoints;
-        private readonly double[] weights;
+        private Vector3[] controlPoints;
+        private double[] weights;
         private double[] knots;
         private readonly short degree;
         private bool isClosedPeriodic;
@@ -241,7 +242,7 @@ namespace netDxf.Entities
             }
 
             this.degree = degree;
-            
+
             // control points
             if (controlPoints == null)
             {
@@ -328,6 +329,37 @@ namespace netDxf.Entities
         #endregion
 
         #region public properties
+
+        public void ResetControlPoints(IEnumerable<Vector3> controlPoints)
+        {
+            // control points
+            if (controlPoints == null)
+            {
+                this.controlPoints = new Vector3[0];
+            }
+            else
+            {
+                this.controlPoints = controlPoints.ToArray();
+                int numControlPoints = this.controlPoints.Length;
+                if (numControlPoints < 2)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(controlPoints), numControlPoints, "The number of control points must be equal or greater than 2.");
+                }
+
+                if (numControlPoints < degree + 1)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(controlPoints), numControlPoints, "The number of control points must be equal or greater than the spline degree + 1.");
+                }
+
+                // create weights
+                this.weights = new double[numControlPoints];
+                for (int i = 0; i < numControlPoints; i++)
+                {
+                    this.weights[i] = 1.0;
+                }
+                this.knots = CreateKnotVector(this.controlPoints.Length, this.degree, this.isClosedPeriodic);
+            }
+        }
 
         /// <summary>
         /// Gets the spline <see cref="Vector3">fit points</see> list.
@@ -544,13 +576,13 @@ namespace netDxf.Entities
         {
             IEnumerable<Vector3> vertexes = this.PolygonalVertexes(precision);
             bool closed = this.IsClosed || this.IsClosedPeriodic;
-            Polyline3D poly = new Polyline3D (vertexes)
+            Polyline3D poly = new Polyline3D(vertexes)
             {
-                Layer = (Layer) this.Layer.Clone(),
-                Linetype = (Linetype) this.Linetype.Clone(),
-                Color = (AciColor) this.Color.Clone(),
+                Layer = (Layer)this.Layer.Clone(),
+                Linetype = (Linetype)this.Linetype.Clone(),
+                Color = (AciColor)this.Color.Clone(),
                 Lineweight = this.Lineweight,
-                Transparency = (Transparency) this.Transparency.Clone(),
+                Transparency = (Transparency)this.Transparency.Clone(),
                 LinetypeScale = this.LinetypeScale,
                 Normal = this.Normal,
                 IsClosed = closed
@@ -574,11 +606,11 @@ namespace netDxf.Entities
             bool closed = this.IsClosed || this.IsClosedPeriodic;
             Polyline2D polyline2D = new Polyline2D(vertexes2D)
             {
-                Layer = (Layer) this.Layer.Clone(),
-                Linetype = (Linetype) this.Linetype.Clone(),
-                Color = (AciColor) this.Color.Clone(),
+                Layer = (Layer)this.Layer.Clone(),
+                Linetype = (Linetype)this.Linetype.Clone(),
+                Color = (AciColor)this.Color.Clone(),
                 Lineweight = this.Lineweight,
-                Transparency = (Transparency) this.Transparency.Clone(),
+                Transparency = (Transparency)this.Transparency.Clone(),
                 LinetypeScale = this.LinetypeScale,
                 Normal = this.Normal,
                 IsClosed = closed
@@ -771,7 +803,7 @@ namespace netDxf.Entities
             double[] knots = new double[numKnots];
 
             int np = degree + 1;
-            int nc =  numKnots / np;
+            int nc = numKnots / np;
             double fact = 1.0 / nc;
             int index = 1;
 
@@ -894,11 +926,11 @@ namespace netDxf.Entities
                 entity = new Spline(new List<Vector3>(this.fitPoints))
                 {
                     //EntityObject properties
-                    Layer = (Layer) this.Layer.Clone(),
-                    Linetype = (Linetype) this.Linetype.Clone(),
-                    Color = (AciColor) this.Color.Clone(),
+                    Layer = (Layer)this.Layer.Clone(),
+                    Linetype = (Linetype)this.Linetype.Clone(),
+                    Color = (AciColor)this.Color.Clone(),
                     Lineweight = this.Lineweight,
-                    Transparency = (Transparency) this.Transparency.Clone(),
+                    Transparency = (Transparency)this.Transparency.Clone(),
                     LinetypeScale = this.LinetypeScale,
                     Normal = this.Normal,
                     IsVisible = this.IsVisible,
@@ -913,11 +945,11 @@ namespace netDxf.Entities
                 entity = new Spline(this.controlPoints, this.weights, this.knots, this.degree, this.fitPoints, this.creationMethod, this.isClosedPeriodic)
                 {
                     //EntityObject properties
-                    Layer = (Layer) this.Layer.Clone(),
-                    Linetype = (Linetype) this.Linetype.Clone(),
-                    Color = (AciColor) this.Color.Clone(),
+                    Layer = (Layer)this.Layer.Clone(),
+                    Linetype = (Linetype)this.Linetype.Clone(),
+                    Color = (AciColor)this.Color.Clone(),
                     Lineweight = this.Lineweight,
-                    Transparency = (Transparency) this.Transparency.Clone(),
+                    Transparency = (Transparency)this.Transparency.Clone(),
                     LinetypeScale = this.LinetypeScale,
                     Normal = this.Normal,
                     //Spline properties
@@ -929,7 +961,7 @@ namespace netDxf.Entities
 
             foreach (XData data in this.XData.Values)
             {
-                entity.XData.Add((XData) data.Clone());
+                entity.XData.Add((XData)data.Clone());
             }
 
             return entity;
